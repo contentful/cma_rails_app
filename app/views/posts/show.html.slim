@@ -1,0 +1,11 @@
+h1 #{@post.title_en_us}
+
+p author: #{@post.author_en_us}
+p #{@post.body_en_us}
+= image_tag get_image(@post.title_image_en_us_id)
+  | #{" "}
+= image_tag get_image(@post.second_image_en_us_id)
+br
+br
+= link_to 'Back',posts_path, class: 'btn btn-default'
+

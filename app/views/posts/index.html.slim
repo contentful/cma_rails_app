@@ -1,0 +1,30 @@
+h1 Posts
+table.table.striped.table-hover
+  thead
+    tr
+      th Title
+      th Author
+      th Body
+      th Category
+      th Actions
+      th Published
+  tbody
+    - @posts.each do |post|
+      tr
+        td.title
+          = post.title_en_us
+        td.author
+          = post.author_en_us
+        td.body
+          = post.body_en_us
+        td.category
+          = link_to post.category(@space).try(:name), post.category_en_us_id.nil? ? '' : edit_category_path(post.category_en_us_id)
+        td.actions
+          = link_to ' Show ',post_path(post.id)
+          = link_to ' Edit ', edit_post_path(post.id)
+          = link_to ' Delete ', post_path(post.id),{method: :delete,  data: {confirm: "Delete #{post.title_en_us}?"}}
+          = link_to published_object(post), toggle_status_post_path(post.id)
+
+        td.published
+          = convert_boolean_value(post.ct_object.published?)
+

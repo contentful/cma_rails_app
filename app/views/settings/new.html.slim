@@ -1,0 +1,9 @@
+h1 Settings
+= form_for @settings, url: { action: :create }, role: 'form' do |f|
+  .form-group
+    = f.label :access_token
+    = f.text_field :access_token, class: 'form-control'
+  .form-group
+    = f.label :organization_id, 'Organization id'
+    = f.text_field :organization_id, class: 'form-control'
+  = f.submit 'Save and Setup', class: 'btn btn-default'

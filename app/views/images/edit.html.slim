@@ -1,0 +1,15 @@
+h1 Edit Asset
+= contentful_form_for @image do |f|
+  - @image.form_field_names.each do |field_name|
+    - if field_name.match(/\Afile_(?!type|url)/)
+      .file
+        = f.label field_name
+        br
+        = image_tag @image.form_image_url(w:250, h:250, field: field_name), class: 'img-thumbnail'
+    - else
+      .form-group
+        = f.label field_name
+        = f.text_field field_name, class: 'form-control'
+  = f.submit 'Save', class: 'btn btn-primary'
+
+

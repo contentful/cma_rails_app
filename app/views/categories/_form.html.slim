@@ -1,0 +1,6 @@
+= contentful_form_for @category do |f|
+  - @category.form_field_names.each do |field_name|
+    .form-group
+      = f.label field_name
+      = f.text_field field_name, class: 'form-control'
+  = f.submit 'Save', class: 'btn btn-primary'

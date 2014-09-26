@@ -1,0 +1,12 @@
+h1 Settings
+= form_for @settings, url: { action: :update }, role: 'form' do |f|
+  .form-group
+    = f.label :access_token
+    = f.text_field :access_token, class: 'form-control'
+  .form-group
+    = f.label :organization_id, 'Organization id'
+    = f.text_field :organization_id, class: 'form-control', readonly: true
+  .form-group
+    = f.label :space_id, 'Space id'
+    = f.text_field :space_id, class: 'form-control', readonly: true
+  = f.submit 'Save', class: 'btn btn-default'

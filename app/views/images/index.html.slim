@@ -1,0 +1,20 @@
+h1 Images
+table.table.striped.table-hover
+  thead
+    tr
+      th Title
+      th Description
+      th File
+      th Actions
+  tbody
+    - @images.each do |image|
+      tr
+        td.title
+          = image.title_en_us
+        td.description
+          = image.description_en_us
+        td.file
+          = image_tag image.try(:image_url, w: 200, h: 200), class: 'img-thumbnail'
+        td.actions
+          = link_to 'Edit ', edit_image_path(image.id)
+          = link_to 'Delete', image_path(image.id),{method: :delete,  data: {confirm: "Delete #{image.title}?"}}

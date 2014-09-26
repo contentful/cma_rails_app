@@ -1,0 +1,10 @@
+h1 New Asset
+= contentful_form_for @image do |f|
+  - @image.form_field_names.each do |field_name|
+    - unless field_name.match(/\Afile_(?!type|url)/)
+      .form-group
+        = f.label field_name
+        = f.text_field field_name, class: 'form-control'
+  = f.submit 'Save', class: 'btn btn-primary'
+
+

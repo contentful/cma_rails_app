@@ -1,0 +1,21 @@
+h1 Categories
+table.table.striped.table-hover
+  thead
+    tr
+      th Name
+      th Description
+      th Actions
+      th Published
+  tbody
+    - @categories.each do |category|
+      tr
+        td.name
+          = category.name_en_us
+        td.description
+          = category.description_en_us
+        td.actions
+          = link_to ' Edit ', edit_category_path(category.id)
+          = link_to ' Delete', category_path(category.id),{method: :delete,  data: {confirm: "Delete #{category.name_en_us}?"}}
+          = link_to published_object(category), toggle_status_category_path(category.id)
+        td.published
+          = convert_boolean_value(category.ct_object.published?)

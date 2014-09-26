@@ -1,0 +1,16 @@
+h1 Add new post
+= form_for @post, url: { action: :update }, method: :put do |f|
+  - @post.content_type.fields.each do |field|
+    - @post.locales.each do |locale|
+      - if @space.default_locale == locale.code || field.localized
+        .form-group
+        - if field.link_type == 'Asset'
+          = f.label "#{field.name.downcase}_#{locale.code.underscore.downcase}"
+          = f.collection_select "#{field.id.downcase}_#{locale.code.underscore.downcase}_id", @images ,:id, "title_#{locale.code.underscore.downcase}", { include_blank: ''}, class: 'form-control'
+        - elsif field.link_type == 'Entry'
+          = f.label "#{field.name.downcase}_#{locale.code.underscore.downcase}"
+          = f.collection_select "#{field.name.downcase}_#{locale.code.underscore.downcase}_id", @categories ,:id,"name_#{locale.code.underscore.downcase}" , { include_blank: ''}, class: 'form-control'
+        - else
+          = f.label "#{field.name.downcase}_#{locale.code.underscore.downcase}"
+          = f.text_field "#{field.name.downcase}_#{locale.code.underscore.downcase}", class: 'form-control'
+  = f.submit 'Update', class: 'btn btn-primary'
