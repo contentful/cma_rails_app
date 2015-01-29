@@ -1,10 +1,10 @@
 Rails Example Application
 =============
 
-## Description
+## Description ##
 Sample Rails app to demonstrate the content creation using the [Content Management API RubyGem](https://github.com/contentful/contentful-management.rb).
 
-## Installation
+## Installation ##
 
 Clone the repository and run
 
@@ -12,7 +12,7 @@ Clone the repository and run
 bundle install
 ```
 
-## Usage
+## Usage ##
 Run the application with ```bundle exec rails server``` and open ```http://0.0.0.0:3000/``` in your browser.
 The first time you use the application, you will be asked to enter your Contentful ```ACCESS_TOKEN``` and ```ORGANIZATION_ID```.
 
@@ -21,9 +21,9 @@ Once you save your credentials the app will create a space called "CMA Rails App
 Your credentials will be stored in the settings table in a locale SQLite database.
 
 
-## Contentful module
+## Contentful module ##
 
-#### Entity
+#### Entity ####
 Initializes objects of Entry type.
 Classes that operate on Contentful::Management::Entry objects inherit from it.
 
@@ -36,7 +36,7 @@ class Category < Contentful::Entity
 end
 ```
 
-#### Methods
+#### Methods ####
 * initialize
 
 Creates localized getters and setters based on the fields of a content type.
@@ -83,13 +83,13 @@ This method returns all objects for your space. All created objects are cached b
 
 * find(space, id)
 
-Returns contentful object.
+Returns contentful object. Every object is cached.
 
 * build(ct_object, space)
 
 Initialize an entry object from the API.
 
-#### Asset
+#### Asset ####
 
 This class inherits from Entity and represents the asset content type. Classes that operate on Contentful::Management::Asset objects inherit from it.
 
@@ -100,14 +100,20 @@ class Image < Contentful::Asset
 end
 ```
 
-## Helpers
+#### Error handling ####
 
-#### contentful_form_for
+Using ActiveModel, we have no possibility to check the type of input data. They are always treated as a String value. We used custom casting type, by checking the type of content type field. Error handling has been added to the basic actions. It checks if the passed parameter has proper type.
+If not, the user will receive an Error object including error message.
+
+
+## Helpers ##
+
+#### contentful_form_for ####
 
 Generates forms to create and edit entries and assets. It generates only fields that are localized.
 
-#### published_object(object)
+#### published_object(object) ####
 Checks status of an entry object.
 
-#### get_image
+#### get_image ####
 Display the image of a linked asset. You can specify parameters, which will return a resized version the image.

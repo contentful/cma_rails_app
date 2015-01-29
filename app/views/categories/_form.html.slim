@@ -1,6 +1,10 @@
 = contentful_form_for @category do |f|
-  - @category.form_field_names.each do |field_name|
+  - @category.form_field_names.each do |field_name, type|
     .form-group
-      = f.label field_name
-      = f.text_field field_name, class: 'form-control'
+      - if type != 'Boolean'
+        = f.label field_name
+        = f.text_field field_name, class: 'form-control'
+      - else
+        = f.label field_name
+        = f.check_box field_name, class: 'form-control'
   = f.submit 'Save', class: 'btn btn-primary'

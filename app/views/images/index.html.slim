@@ -16,5 +16,9 @@ table.table.striped.table-hover
         td.file
           = image_tag image.try(:image_url, w: 200, h: 200), class: 'img-thumbnail'
         td.actions
-          = link_to 'Edit ', edit_image_path(image.id)
-          = link_to 'Delete', image_path(image.id),{method: :delete,  data: {confirm: "Delete #{image.title}?"}}
+          = link_to ' Edit ', edit_image_path(image.id)
+          - if published_object(image)
+            = link_to ' Unpublish ', toggle_status_image_path(image.id)
+          - else
+            = link_to ' Delete ', image_path(image.id), {method: :delete, data: {confirm: "Delete #{image.title}?"}}
+            = link_to ' Publish ', toggle_status_image_path(image.id)

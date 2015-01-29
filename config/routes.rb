@@ -9,7 +9,9 @@ CmaDemoApp::Application.routes.draw do
     get :toggle_status, on: :member
   end
 
-  resources :images, except: [:show]
+  resources :images, except: [:show] do
+    get :toggle_status, on: :member
+  end
 
   root to: 'posts#index'
 

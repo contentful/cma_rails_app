@@ -10,7 +10,7 @@ module ContentfulHelper
   end
 
   def published_object(object)
-    object.ct_object.published? ? ' Unpublish ' : ' Publish '
+    object.ct_object.published?
   end
 
   def get_image(object)

@@ -13,6 +13,7 @@ module Contentful
     # Returns localised accessors for Contentful Asset
     # Example: If space has 2 locales (code: 'en-US', 'de-DE'), accessors 'title_en_us, title_de_de' will be created.
     def initialize(params)
+      @errors_contentful = []
       @space = params.delete(:space)
       setup_localised_attributes(ATTRIBUTES, params)
     end
@@ -50,10 +51,12 @@ module Contentful
       assign_parameters_for_fields(CONTENTFUL_FIELDS, params)
       assign_attributes_from(params)
       ct_object = self.ct_object.save
-      object = assign_data(ct_object)
+      object = assign_data(ct_object, space)
+      ct_object.process_file
       APICache.delete(object.cache_key)
-      self.ct_object.process_file
-      object
+    rescue
+      errors_contentful << ct_object.error[:details]
+      valid_asset?
     end
 
     # Assigns parameters to asset field.
@@ -83,7 +86,7 @@ module Contentful
       locale_part = field_name.gsub('file_', '')
       locale = locales.select { |locale| locale.code.underscore.downcase == locale_part }.first
       self.ct_object.locale = locale.code
-      self.ct_object.try(:image_url, params) if self.ct_object.file.present?
+      self.ct_object.file.present? ? self.ct_object.try(:image_url, params) : nil
     end
 
     class << self
@@ -159,6 +162,10 @@ module Contentful
         end
         asset.send("#{field}_with_locales=", field_params)
       end
+    end
+
+    def valid_asset?
+      errors_contentful.empty?
     end
   end
 end

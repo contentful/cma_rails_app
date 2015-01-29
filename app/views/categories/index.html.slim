@@ -15,7 +15,10 @@ table.table.striped.table-hover
           = category.description_en_us
         td.actions
           = link_to ' Edit ', edit_category_path(category.id)
-          = link_to ' Delete', category_path(category.id),{method: :delete,  data: {confirm: "Delete #{category.name_en_us}?"}}
-          = link_to published_object(category), toggle_status_category_path(category.id)
+          - if published_object(category)
+            = link_to 'Unpublish ' , toggle_status_category_path(category.id)
+          - else
+            = link_to ' Delete ', category_path(category.id), {method: :delete, data: {confirm: "Delete #{category.name_en_us}?"}}
+            = link_to ' Publish ' , toggle_status_category_path(category.id)
         td.published
           = convert_boolean_value(category.ct_object.published?)
