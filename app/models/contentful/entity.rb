@@ -2,17 +2,17 @@ module Contentful
   class Entity
 
     include ActiveModel::Model
-    include ActiveModel::Validations
     include ActiveModel::Conversion
     extend ActiveModel::Naming
 
-    attr_accessor :ct_object, :content_type, :locales, :space
+    attr_accessor :ct_object, :content_type, :locales, :space, :errors_contentful
 
     # Creates accessors to Entry.
     # Takes attributes of ContentType and space.
     # Returns localised accessors for Contentful Entry.
     # Example: If space has 2 locales (code: 'en-US', 'de-DE'), accessors 'name_en_us, name_de_de' will be created.
     def initialize(params)
+      @errors_contentful = []
       @space = params.delete(:space)
       setup_localised_attributes(content_type.fields, params)
     end
@@ -20,14 +20,14 @@ module Contentful
     # Get specified content type from Contentful.
     # Returns Contentful Content type object.
     def content_type
-      @content_type = APICache.get("content_type_#{ct_type}") do
+      @content_type = APICache.get("content_type_#{ct_type}", period: 0) do
         space.content_types.find(ct_type)
       end
     end
 
     #Get all locales from Contentful Space.
     def locales
-      @locales = APICache.get('locales') do
+      @locales = APICache.get('locales', period: 0) do
         space.locales.all
       end
     end
@@ -43,6 +43,9 @@ module Contentful
       end
       object = self.class.new(ct_object.fields.merge(space: space))
       object.send(:assign_data, ct_object, space)
+    rescue
+      errors_contentful << ct_object.error[:details]
+      entity_valid?
     end
 
     # Create the Contentful Entry object.
@@ -62,9 +65,9 @@ module Contentful
       assign_parameters_for_fields(content_type.fields, params)
       assign_attributes_from(params)
       ct_object = self.ct_object.save
-      object = assign_data(ct_object)
-      APICache.delete(object.cache_key)
-      object
+      object = assign_data(ct_object, space)
+      delete_from_cache(object.cache_key)
+      entity_valid?
     end
 
     # Checks which Contentful type objects is.
@@ -85,11 +88,16 @@ module Contentful
 
     # Creates localised form fields used in new and edit forms.
     def form_field_names
-      content_type.fields.each_with_object([]) do |field, fields|
+      content_type.fields.each_with_object({}) do |(field, name), fields|
         locales.each do |locale|
-          fields << "#{field.name.downcase}_#{locale.code.underscore.downcase}" if space.default_locale == locale.code || field.localized
+          fields["#{field.name.downcase}_#{locale.code.underscore.downcase}"]= field.type if field_is_localised?(field, locale)
         end
       end
+    end
+
+    # Checks if field is localised
+    def field_is_localised?(field, locale)
+      space.default_locale == locale.code || field.localized
     end
 
     class << self
@@ -102,11 +110,17 @@ module Contentful
 
       # Gets an entry from Contentful.
       # Takes space and entry id.
-      # Returns build model, based on Contentful entry attributes.
+      # Returns always valid build model, based on Contentful attributes.
       def find(space, id)
-        APICache.get("#{self.try(:ct_type).to_s || 'asset'}_#{id}", period: 2) do
+        entity = APICache.get("#{self.try(:ct_type).to_s || 'asset'}_#{id}", period: 0, cache: 200) do
           build(item(space, id), space)
         end
+        return_valid_entity(space, entity, id)
+      end
+
+      #Checks if entity is valid, if not fetch new one from Contentful.
+      def return_valid_entity(space, entity, id)
+        entity.ct_object.is_a?(Contentful::Management::Entry) || entity.ct_object.is_a?(Contentful::Management::Asset) ? entity : build(item(space, id), space)
       end
 
       # Gets a collection of entries.
@@ -140,10 +154,9 @@ module Contentful
       def build(ct_object, space)
         object = self.new((ct_object.try(:instance_variable_get, :@fields) || {}).merge(space: space, auto: true))
         object = object.send(:assign_data, ct_object, space)
-        APICache.store.set(object.cache_key, object)
+        APICache.store.set(object.cache_key, object) if ct_object.is_a? Contentful::Management::Entry
         object
       end
-
     end
 
     private
@@ -156,11 +169,11 @@ module Contentful
         unless ct_object_id.nil?
           case link['sys']['linkType']
             when 'Entry'
-              APICache.get("entry_#{link['sys']['id']}") do
+              APICache.get("entry_#{link['sys']['id']}", period: 0) do
                 space.entries.find(link['sys']['id'])
               end
             when 'Asset'
-              APICache.get("asset_#{link['sys']['id']}") do
+              APICache.get("asset_#{link['sys']['id']}", period: 0) do
                 space.assets.find(link['sys']['id'])
               end
           end
@@ -185,7 +198,9 @@ module Contentful
     def create_localised_params_for(field)
       locales.each_with_object({}) do |locale, field_params|
         field_name = localized_field_name(field, locale)
-        field_params[locale.code] = send(field_name) if respond_to? field_name
+        field_value = send(field_name) if respond_to? field_name
+        field_value = nil if field_value.blank?
+        field_params[locale.code] = cast_value_type(field, field_value)
       end
     end
 
@@ -197,6 +212,9 @@ module Contentful
       name
     end
 
+    def delete_from_cache(key)
+      APICache.delete(key)
+    end
 
     def setup_localised_attributes(fields, params)
       fields.each do |field|
@@ -264,10 +282,22 @@ module Contentful
       field_params = locales.each_with_object({}) do |locale, field_params|
         field_name = localized_field_name(field, locale)
         params.each do |name, value|
-          field_params[locale.code] = value if respond_to?(field_name) && field_name == name
+          assign_parameter_to_field(field, field_params, locale, value) if valid_field?(field_name, name)
         end
       end
       self.ct_object.send("#{field.id}_with_locales=", field_params)
+      # rescue
+      #   errors_contentful << self.ct_object.error[:details]
+    end
+
+    def assign_parameter_to_field(field, field_params, locale, value)
+      parsed_value = cast_value_type(field, value)
+      parsed_value = nil if parsed_value.blank?
+      field_params[locale.code] = parsed_value
+    end
+
+    def valid_field?(field_name, name)
+      respond_to?(field_name) && field_name == name
     end
 
     def assign_attributes_from(params)
@@ -280,6 +310,39 @@ module Contentful
       instance_variables.each_with_object({}) do |name, params|
         params[name.to_s.gsub('@', '').to_sym] = instance_variable_get(name) if instance_variable_get(name).present?
       end
+    end
+
+    def cast_value_type(field, value)
+      case field.type
+        when 'Integer'
+          is_integer?(field, value)
+        when 'Number'
+          is_number?(field, value)
+        when 'Boolean'
+          value == '1' ? true : false
+        else
+          value
+      end
+    end
+
+    def is_integer?(field, value)
+      value.to_s.match(/\A[+-]?\d+?\Z/) == nil ? add_error_message(value, error_message(field, value)) : value.to_i
+    end
+
+    def is_number?(field, value)
+      value.to_s.match(/\A[+-]?\d+?(\.\d+)?\Z/) == nil ? add_error_message(value, error_message(field, value)) : value.to_f
+    end
+
+    def error_message(field, value)
+      "You have entered the incorrect value: #{value} for the #{field.name} field. #{field.type} value required!"
+    end
+
+    def add_error_message(value, msg)
+      value.present? ? errors_contentful << msg : nil
+    end
+
+    def entity_valid?
+      errors_contentful.empty?
     end
 
   end

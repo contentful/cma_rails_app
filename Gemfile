@@ -11,7 +11,7 @@ gem 'sass-rails', '~> 4.0.1'
 
 gem 'slim-rails', '2.1.5'
 
-gem 'contentful-management'
+gem 'contentful-management', path: '/Users/piotrprotas/Documents/RUBY_CONTENTUL/contentful-management.rb'
 
 gem 'uglifier', '>= 1.3.0'
 gem 'coffee-rails', '~> 4.0.0'
@@ -36,3 +36,4 @@ end
 group :doc do
   gem 'sdoc', require: false
 end
+
